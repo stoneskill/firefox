@@ -347,7 +347,11 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
           aFailureId = "FEATURE_FAILURE_SW_RAST";
         }
+#ifdef _MIPS_ARCH_LOONGSON3A
+        else if (mIsLlvmpipe) {
+#else
         else if (mIsLlvmpipe && version(mMajorVersion, mMinorVersion) < version(9, 1)) {
+#endif
           // bug 791905, Mesa bug 57733, fixed in Mesa 9.1 according to
           // https://bugs.freedesktop.org/show_bug.cgi?id=57733#c3
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
