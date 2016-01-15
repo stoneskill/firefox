@@ -133,7 +133,7 @@ public:
     }
 
     bool AccelerateLayersByDefault() override {
-#ifdef NIGHTLY_BUILD
+#if defined(NIGHTLY_BUILD) || defined(_MIPS_ARCH_LOONGSON3A)
       // Only enable the GL compositor on Nightly for now until we have
       // sufficient data for blocklisting.
       return true;
