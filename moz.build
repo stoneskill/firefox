@@ -55,6 +55,7 @@ DIRS += [
     'config/external/nspr',
     'config/external/zlib',
     'memory',
+    'memory-ls3',
     'mfbt',
     'mozglue',
 ]
