@@ -74,6 +74,9 @@ if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_TARGET'] in ('Linux', 'Android'):
     if '-flto' in CONFIG['OS_CXXFLAGS'] and not CONFIG['CLANG_CXX']:
         LDFLAGS += ['--param lto-partitions=1']
 
+if CONFIG['CPU_ARCH'].startswith('mips'):
+    USE_LIBS += [ 'memory-ls3' ]
+
 if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_TARGET'] == 'Darwin':
     # For sandbox includes and the include dependencies those have
     LOCAL_INCLUDES += [
