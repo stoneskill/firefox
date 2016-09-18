@@ -43,6 +43,7 @@ static const int kCpuHasFMA3 = 0x1000;
 static const int kCpuHasMIPS = 0x10000;
 static const int kCpuHasMIPS_DSP = 0x20000;
 static const int kCpuHasMIPS_DSPR2 = 0x40000;
+static const int kCpuHasMIPS_MMI = 0x80000;
 
 // Internal function used to auto-init.
 LIBYUV_API

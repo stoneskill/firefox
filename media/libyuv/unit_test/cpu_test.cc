@@ -49,6 +49,8 @@ TEST_F(libyuvTest, TestCpuHas) {
   printf("Has MIPS DSP %x\n", has_mips_dsp);
   int has_mips_dspr2 = TestCpuFlag(kCpuHasMIPS_DSPR2);
   printf("Has MIPS DSPR2 %x\n", has_mips_dspr2);
+  int has_mips_mmi = TestCpuFlag(kCpuHasMIPS_MMI);
+  printf("Has MIPS MMI %x\n", has_mips_mmi);
 }
 
 #if defined(__i386__) || defined(__x86_64__) || \

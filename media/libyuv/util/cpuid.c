@@ -68,8 +68,10 @@ int main(int argc, const char* argv[]) {
   if (has_mips) {
     int has_mips_dsp = TestCpuFlag(kCpuHasMIPS_DSP);
     int has_mips_dspr2 = TestCpuFlag(kCpuHasMIPS_DSPR2);
+    int has_mips_mmi = TestCpuFlag(kCpuHasMIPS_MMI);
     printf("Has MIPS DSP %x\n", has_mips_dsp);
     printf("Has MIPS DSPR2 %x\n", has_mips_dspr2);
+    printf("Has MIPS MMI %x\n", has_mips_mmi);
   }
   if (has_x86) {
     int has_sse2 = TestCpuFlag(kCpuHasSSE2);

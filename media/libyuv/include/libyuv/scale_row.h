@@ -61,6 +61,10 @@ extern "C" {
 #define HAS_SCALEROWDOWN34_MIPS_DSPR2
 #define HAS_SCALEROWDOWN38_MIPS_DSPR2
 #endif
+#if !defined(LIBYUV_DISABLE_MIPS) && !defined(__native_client__) && \
+    defined(__mips__) && _MIPS_ARCH_LOONGSON3A
+#define HAS_SCALEROWDOWN2_MIPS_MMI
+#endif
 
 // Scale ARGB vertically with bilinear interpolation.
 void ScalePlaneVertical(int src_height,
@@ -292,6 +296,11 @@ void ScaleRowDown38_2_Box_MIPS_DSPR2(const uint8* src_ptr, ptrdiff_t src_stride,
 void ScaleRowDown38_3_Box_MIPS_DSPR2(const uint8* src_ptr,
                                      ptrdiff_t src_stride,
                                      uint8* dst_ptr, int dst_width);
+
+void ScaleRowDown2_MIPS_MMI(const uint8* src_ptr, ptrdiff_t src_stride,
+                            uint8* dst, int dst_width);
+void ScaleRowDown2Box_MIPS_MMI(const uint8* src_ptr, ptrdiff_t src_stride,
+                               uint8* dst, int dst_width);
 
 #ifdef __cplusplus
 }  // extern "C"

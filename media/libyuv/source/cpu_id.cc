@@ -235,6 +235,9 @@ int InitCpuFlags(void) {
 #if defined(__mips_dspr2)
   cpu_info_ |= kCpuHasMIPS_DSPR2;
 #endif
+#if defined(_MIPS_ARCH_LOONGSON3A)
+  cpu_info_ |= kCpuHasMIPS_MMI;
+#endif
   cpu_info_ |= kCpuHasMIPS;
 
   if (getenv("LIBYUV_DISABLE_MIPS")) {
@@ -245,6 +248,9 @@ int InitCpuFlags(void) {
   }
   if (getenv("LIBYUV_DISABLE_MIPS_DSPR2")) {
     cpu_info_ &= ~kCpuHasMIPS_DSPR2;
+  }
+  if (getenv("LIBYUV_DISABLE_MIPS_MMI")) {
+    cpu_info_ &= ~kCpuHasMIPS_MMI;
   }
 #elif defined(__arm__)
 #if defined(__linux__) && (defined(__ARM_NEON__) || defined(LIBYUV_NEON)) && \

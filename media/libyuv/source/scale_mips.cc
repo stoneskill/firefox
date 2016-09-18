@@ -16,6 +16,85 @@ namespace libyuv {
 extern "C" {
 #endif
 
+// This module is for GCC MIPS Loongson MMI
+#if !defined(LIBYUV_DISABLE_MIPS) && _MIPS_ARCH_LOONGSON3A
+
+void ScaleRowDown2_MIPS_MMI(const uint8* src_ptr, ptrdiff_t src_stride,
+                            uint8* dst, int dst_width) {
+  double ftmp[3];
+  int tmp[1];
+
+  __asm__ volatile (
+    "li         %[tmp0],        0x08                                    \n\t"
+    "mtc1       %[tmp0],        %[ftmp2]                                \n\t"
+
+    "1:                                                                 \n\t"
+    "ldc1       %[ftmp0],       0x00(%[src_ptr])                        \n\t"
+    "ldc1       %[ftmp1],       0x08(%[src_ptr])                        \n\t"
+    "daddiu     %[src_ptr],     %[src_ptr],     0x10                    \n\t"
+    "psrlh      %[ftmp0],       %[ftmp0],       %[ftmp2]                \n\t"
+    "psrlh      %[ftmp1],       %[ftmp1],       %[ftmp2]                \n\t"
+    "packushb   %[ftmp0],       %[ftmp0],       %[ftmp1]                \n\t"
+    "sdc1       %[ftmp0],       0x00(%[dst])                            \n\t"
+    "daddiu     %[dst_width],   %[dst_width],  -0x08                    \n\t"
+    "daddiu     %[dst],         %[dst],         0x08                    \n\t"
+    "bgtz       %[dst_width],   1b                                      \n\t"
+    : [ftmp0]"=&f"(ftmp[0]),            [ftmp1]"=&f"(ftmp[1]),
+      [ftmp2]"=&f"(ftmp[2]),
+      [tmp0]"=&r"(tmp[0]),
+      [src_ptr]"+&r"(src_ptr),          [dst]"+&r"(dst),
+      [dst_width]"+&r"(dst_width)
+    ::"memory"
+  );
+}
+
+void ScaleRowDown2Box_MIPS_MMI(const uint8* src_ptr, ptrdiff_t src_stride,
+                               uint8* dst, int dst_width) {
+  double ftmp[9];
+  int tmp[1];
+
+  __asm__ volatile (
+    "li         %[tmp0],        0x08                                    \n\t"
+    "mtc1       %[tmp0],        %[ftmp8]                                \n\t"
+    "pcmpeqb    %[ftmp5],       %[ftmp5],       %[ftmp5]                \n\t"
+    "psrlh      %[ftmp5],       %[ftmp5],       %[ftmp8]                \n\t"
+
+    "1:                                                                 \n\t"
+    "ldc1       %[ftmp0],       0x00(%[src_ptr])                        \n\t"
+    "ldc1       %[ftmp1],       0x08(%[src_ptr])                        \n\t"
+    "gsldxc1    %[ftmp2],       0x00(%[src_ptr], %[src_stride])         \n\t"
+    "gsldxc1    %[ftmp3],       0x08(%[src_ptr], %[src_stride])         \n\t"
+    "daddiu     %[src_ptr],     %[src_ptr],     0x10                    \n\t"
+    "pavgb      %[ftmp0],       %[ftmp0],       %[ftmp2]                \n\t"
+    "pavgb      %[ftmp1],       %[ftmp1],       %[ftmp3]                \n\t"
+    "mov.d      %[ftmp2],       %[ftmp0]                                \n\t"
+    "psrlh      %[ftmp0],       %[ftmp0],       %[ftmp8]                \n\t"
+    "mov.d      %[ftmp3],       %[ftmp1]                                \n\t"
+    "psrlh      %[ftmp1],       %[ftmp1],       %[ftmp8]                \n\t"
+    "and        %[ftmp2],       %[ftmp2],       %[ftmp5]                \n\t"
+    "and        %[ftmp3],       %[ftmp3],       %[ftmp5]                \n\t"
+    "pavgh      %[ftmp0],       %[ftmp0],       %[ftmp2]                \n\t"
+    "pavgh      %[ftmp1],       %[ftmp1],       %[ftmp3]                \n\t"
+    "packushb   %[ftmp0],       %[ftmp0],       %[ftmp1]                \n\t"
+    "sdc1       %[ftmp0],       0x00(%[dst])                            \n\t"
+    "daddiu     %[dst_width],   %[dst_width],  -0x08                    \n\t"
+    "daddiu     %[dst],         %[dst],         0x08                    \n\t"
+    "bnez       %[dst_width],   1b                                      \n\t"
+    : [ftmp0]"=&f"(ftmp[0]),            [ftmp1]"=&f"(ftmp[1]),
+      [ftmp2]"=&f"(ftmp[2]),            [ftmp3]"=&f"(ftmp[3]),
+      [ftmp4]"=&f"(ftmp[4]),            [ftmp5]"=&f"(ftmp[5]),
+      [ftmp6]"=&f"(ftmp[6]),            [ftmp7]"=&f"(ftmp[7]),
+      [ftmp8]"=&f"(ftmp[8]),
+      [tmp0]"=&r"(tmp[0]),
+      [src_ptr]"+&r"(src_ptr),          [dst]"+&r"(dst),
+      [dst_width]"+&r"(dst_width)
+    : [src_stride]"r"((intptr_t)src_stride)
+    : "memory"
+  );
+}
+
+#endif /* !defined(LIBYUV_DISABLE_MIPS) && _MIPS_ARCH_LOONGSON3A */
+
 // This module is for GCC MIPS DSPR2
 #if !defined(LIBYUV_DISABLE_MIPS) && \
     defined(__mips_dsp) && (__mips_dsp_rev >= 2)

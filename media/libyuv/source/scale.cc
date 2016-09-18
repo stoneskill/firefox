@@ -76,6 +76,13 @@ static void ScalePlaneDown2(int src_width, int src_height,
     ScaleRowDown2 = filtering ?
         ScaleRowDown2Box_MIPS_DSPR2 : ScaleRowDown2_MIPS_DSPR2;
   }
+#elif defined(HAS_SCALEROWDOWN2_MIPS_MMI)
+  if (TestCpuFlag(kCpuHasMIPS_MMI) && IS_ALIGNED(src_ptr, 8) &&
+      IS_ALIGNED(src_stride, 8) && IS_ALIGNED(row_stride, 8) &&
+      IS_ALIGNED(dst_ptr, 8) && IS_ALIGNED(dst_stride, 8)) {
+    ScaleRowDown2 = filtering ?
+        ScaleRowDown2Box_MIPS_MMI : ScaleRowDown2_MIPS_MMI;
+  }
 #endif
 
   if (filtering == kFilterLinear) {
