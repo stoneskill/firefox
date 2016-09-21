@@ -44,6 +44,9 @@
         ['target_arch=="ia32" or target_arch=="x64"', {
           'dependencies': [ 'video_processing_sse2', ],
         }],
+        ['target_arch=="mipsel" or target_arch=="mips64el" and mips_arch_variant=="loongson"', {
+          'dependencies': [ 'video_processing_mmi', ],
+        }],
       ],
     },
   ],
@@ -65,6 +68,23 @@
               'xcode_settings': {
                 'OTHER_CFLAGS': [ '-msse2', ],
               },
+            }],
+          ],
+        },
+      ],
+    }],
+    ['target_arch=="mipsel" or target_arch=="mips64el" and mips_arch_variant=="loongson"', {
+      'targets': [
+        {
+          'target_name': 'video_processing_mmi',
+          'type': 'static_library',
+          'sources': [
+            'main/source/content_analysis_mmi.cc',
+          ],
+          'conditions': [
+            ['os_posix==1 and OS!="mac"', {
+              'cflags': [ '-march=loongson3a', ],
+              'cflags_mozilla': [ '-march=loongson3a', ],
             }],
           ],
         },

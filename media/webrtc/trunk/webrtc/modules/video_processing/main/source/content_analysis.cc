@@ -40,6 +40,12 @@ VPMContentAnalysis::VPMContentAnalysis(bool runtime_cpu_detection)
     }
 #endif
   }
+
+#if defined(WEBRTC_ARCH_MIPS) && defined(WEBRTC_LOONGSON_ASM)
+  ComputeSpatialMetrics = &VPMContentAnalysis::ComputeSpatialMetrics_MMI;
+  TemporalDiffMetric = &VPMContentAnalysis::TemporalDiffMetric_MMI;
+#endif
+
   Release();
 }
 

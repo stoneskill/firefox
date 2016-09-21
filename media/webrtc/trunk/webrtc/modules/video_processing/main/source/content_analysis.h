@@ -65,6 +65,11 @@ class VPMContentAnalysis {
   int32_t TemporalDiffMetric_SSE2();
 #endif
 
+#if defined(WEBRTC_ARCH_MIPS) && defined(WEBRTC_LOONGSON_ASM)
+  int32_t ComputeSpatialMetrics_MMI();
+  int32_t TemporalDiffMetric_MMI();
+#endif
+
   const uint8_t* orig_frame_;
   rtc::scoped_ptr<uint8_t[]> prev_frame_;
   int width_;
