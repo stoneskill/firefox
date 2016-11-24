@@ -1283,6 +1283,7 @@ moz_gtk_tooltip_paint(cairo_t *cr, const GdkRectangle* aRect,
     GdkRectangle rect = *aRect;
     gtk_render_background(style, cr, rect.x, rect.y, rect.width, rect.height);
     gtk_render_frame(style, cr, rect.x, rect.y, rect.width, rect.height);
+    ReleaseStyleContext(style);
 
     // Horizontal Box drawing
     //
@@ -1292,8 +1293,7 @@ moz_gtk_tooltip_paint(cairo_t *cr, const GdkRectangle* aRect,
     // 6px margin.
     // For drawing Horizontal Box we have to inset drawing area by that 6px
     // plus its CSS margin.
-    GtkStyleContext* boxStyle =
-        CreateStyleForWidget(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0), style);
+    GtkStyleContext* boxStyle = ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX, direction);
 
     rect.x += 6;
     rect.y += 6;
@@ -1310,15 +1310,14 @@ moz_gtk_tooltip_paint(cairo_t *cr, const GdkRectangle* aRect,
     moz_gtk_rectangle_inset(&rect, padding);
     gtk_style_context_get_border(boxStyle, GTK_STATE_FLAG_NORMAL, &border);
     moz_gtk_rectangle_inset(&rect, border);
+    ReleaseStyleContext(boxStyle);
 
     GtkStyleContext* labelStyle =
-        CreateStyleForWidget(gtk_label_new(nullptr), boxStyle);
+        ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX_LABEL, direction);
     moz_gtk_draw_styled_frame(labelStyle, cr, &rect, false);
-    g_object_unref(labelStyle);
 
-    g_object_unref(boxStyle);
+    ReleaseStyleContext(labelStyle);
 
-    ReleaseStyleContext(style);
     return MOZ_GTK_SUCCESS;
 }
 
@@ -2180,7 +2179,6 @@ moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
         break;
     case MOZ_GTK_TOOLTIP:
         {
-            style = ClaimStyleContext(MOZ_GTK_TOOLTIP);
             // In GTK 3 there are 6 pixels of additional margin around the box.
             // See details there:
             // https://github.com/GNOME/gtk/blob/5ea69a136bd7e4970b3a800390e20314665aaed2/gtk/ui/gtktooltipwindow.ui#L11
@@ -2189,21 +2187,16 @@ moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
             // We also need to add margin/padding/borders from Tooltip content.
             // Tooltip contains horizontal box, where icon and label is put.
             // We ignore icon as long as we don't have support for it.
-            GtkStyleContext* boxStyle =
-                CreateStyleForWidget(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0),
-                                     style);
+            GtkStyleContext* boxStyle = ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX);
             moz_gtk_add_margin_border_padding(boxStyle,
                                               left, top, right, bottom);
+            ReleaseStyleContext(boxStyle);
 
-            GtkStyleContext* labelStyle =
-                CreateStyleForWidget(gtk_label_new(nullptr), boxStyle);
+            GtkStyleContext* labelStyle = ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX_LABEL);
             moz_gtk_add_margin_border_padding(labelStyle,
                                               left, top, right, bottom);
+            ReleaseStyleContext(labelStyle);
 
-            g_object_unref(labelStyle);
-            g_object_unref(boxStyle);
-
-            ReleaseStyleContext(style);
             return MOZ_GTK_SUCCESS;
         }
     case MOZ_GTK_SCROLLBAR_VERTICAL:
