@@ -379,7 +379,7 @@ AsmJSModule::finish(ExclusiveContext* cx, TokenStream& tokenStream, MacroAssembl
         RelativeLink link(RelativeLink::MixedJump);
         link.srcOffset = mjp.src.getOffset();
         link.midOffset = mjp.mid.getOffset();
-        link.targetOffset = uintptr_t(mjp.target);
+        link.targetOffset = mjp.target;
         if (!staticLinkData_.relativeLinks.append(link))
             return false;
     }

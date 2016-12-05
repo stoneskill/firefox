@@ -104,7 +104,7 @@ AssemblerMIPSShared::asmMergeWith(const AssemblerMIPSShared& other)
     for (size_t i = 0; i < other.numMixedJumps(); i++) {
         const MixedJumpPatch& mjp = other.mixedJumps_[i];
         addMixedJump(BufferOffset(size() + mjp.src.getOffset()),
-                     ImmPtr(size() + mjp.target), mjp.kind);
+                     size() + mjp.target, mjp.kind);
     }
     return m_buffer.appendBuffer(other.m_buffer);
 }
@@ -1552,7 +1552,7 @@ AssemblerMIPSShared::bind(InstImm* inst, uintptr_t branch, uintptr_t target)
 
     // Generate the patchable mixed jump for call.
     if (inst->extractOpcode() == ((uint32_t)op_jal >> OpcodeShift)) {
-        addMixedJump(BufferOffset(branch), ImmPtr((void*)target));
+        addMixedJump(BufferOffset(branch), target);
         return;
     }
 
@@ -1575,7 +1575,7 @@ AssemblerMIPSShared::bind(InstImm* inst, uintptr_t branch, uintptr_t target)
     if (inst[0].encode() != inst_beq.encode())
         kind = MixedJumpPatch::CONDITIONAL;
 
-    addMixedJump(BufferOffset(branch), ImmPtr((const void*)target), kind);
+    addMixedJump(BufferOffset(branch), target, kind);
 }
 
 void
@@ -1596,7 +1596,7 @@ AssemblerMIPSShared::bind(RepatchLabel* label)
             MOZ_ASSERT(BOffImm16::IsInRange(offset));
             inst1->setBOffImm16(BOffImm16(offset));
         } else {
-            addMixedJump(b, ImmPtr((void*)dest.getOffset()), MixedJumpPatch::PATCHABLE);
+            addMixedJump(b, dest.getOffset(), MixedJumpPatch::PATCHABLE);
         }
 
     }
@@ -1778,7 +1778,7 @@ AssemblerMIPSShared::PatchMixedJumps(uint8_t* buffer)
         MixedJumpPatch& mjp = mixedJump(i);
         uint8_t* src = buffer + mjp.src.getOffset();
         uint8_t* mid = nullptr;
-        uint8_t* target = buffer + uintptr_t(mjp.target);
+        uint8_t* target = buffer + mjp.target;
         InstImm* b = (InstImm*)src;
 
         if (mjp.mid.assigned()) {
