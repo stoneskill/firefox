@@ -143,8 +143,6 @@ class Assembler : public AssemblerMIPSShared
     static uint64_t ExtractInstructionImmediate(uint8_t* code);
 
     static void ToggleCall(CodeLocationLabel inst_, bool enabled);
-
-    static void UpdateBoundsCheck(uint64_t logHeapSize, Instruction* inst);
 }; // Assembler
 
 static const uint32_t NumIntArgRegs = 8;

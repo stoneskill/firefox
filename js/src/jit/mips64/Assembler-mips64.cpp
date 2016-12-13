@@ -356,10 +356,3 @@ Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
 
     AutoFlushICache::flush(uintptr_t(i4), sizeof(uint32_t));
 }
-
-void
-Assembler::UpdateBoundsCheck(uint64_t heapSize, Instruction* inst)
-{
-    // Replace with new value
-    Assembler::UpdateLoad64Value(inst, heapSize);
-}

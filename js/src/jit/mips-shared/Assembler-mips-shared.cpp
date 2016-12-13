@@ -1877,3 +1877,22 @@ AssemblerMIPSShared::ToggleToCmp(CodeLocationLabel inst_)
     AutoFlushICache::flush(uintptr_t(inst), 4);
 }
 
+void
+AssemblerMIPSShared::UpdateLuiOriValue(Instruction* inst0, Instruction* inst1, uint32_t value)
+{
+    MOZ_ASSERT(inst0->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
+    MOZ_ASSERT(inst1->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
+
+    ((InstImm*) inst0)->setImm16(Imm16::Upper(Imm32(value)));
+    ((InstImm*) inst1)->setImm16(Imm16::Lower(Imm32(value)));
+}
+
+void
+AssemblerMIPSShared::UpdateBoundsCheck(uint32_t heapSize, Instruction* inst)
+{
+    InstImm* i0 = (InstImm*) inst;
+    InstImm* i1 = (InstImm*) i0->next();
+
+    // Replace with new value
+    AssemblerMIPSShared::UpdateLuiOriValue(i0, i1, heapSize);
+}

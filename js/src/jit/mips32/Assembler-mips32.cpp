@@ -118,7 +118,7 @@ jit::PatchJump(CodeLocationJump& jump_, CodeLocationLabel label, ReprotectCode r
     inst2 = inst1->next();
 
     MaybeAutoWritableJitCode awjc(inst1, 8, reprotect);
-    Assembler::UpdateLuiOriValue(inst1, inst2, (uint32_t)label.raw());
+    AssemblerMIPSShared::UpdateLuiOriValue(inst1, inst2, (uint32_t)label.raw());
 
     AutoFlushICache::flush(uintptr_t(inst1), 8);
 }
@@ -140,12 +140,12 @@ jit::PatchBackedge(CodeLocationJump& jump, CodeLocationLabel label,
     } else {
         if (target == JitRuntime::BackedgeLoopHeader) {
             Instruction* lui = &branch[1];
-            Assembler::UpdateLuiOriValue(lui, lui->next(), targetAddr);
+            AssemblerMIPSShared::UpdateLuiOriValue(lui, lui->next(), targetAddr);
             // Jump to ori. The lui will be executed in delay slot.
             branch->setBOffImm16(BOffImm16(2 * sizeof(uint32_t)));
         } else {
             Instruction* lui = &branch[4];
-            Assembler::UpdateLuiOriValue(lui, lui->next(), targetAddr);
+            AssemblerMIPSShared::UpdateLuiOriValue(lui, lui->next(), targetAddr);
             branch->setBOffImm16(BOffImm16(4 * sizeof(uint32_t)));
         }
     }
@@ -184,7 +184,7 @@ TraceOneDataRelocation(JSTracer* trc, Instruction* inst)
     TraceManuallyBarrieredGenericPointerEdge(trc, reinterpret_cast<gc::Cell**>(&ptr),
                                                  "ion-masm-ptr");
     if (ptr != prior) {
-        Assembler::UpdateLuiOriValue(inst, inst->next(), uint32_t(ptr));
+        AssemblerMIPSShared::UpdateLuiOriValue(inst, inst->next(), uint32_t(ptr));
         AutoFlushICache::flush(uintptr_t(inst), 8);
     }
 }
@@ -238,7 +238,7 @@ Assembler::Bind(uint8_t* rawCode, CodeOffset* label, const void* address)
     if (label->bound()) {
         intptr_t offset = label->offset();
         Instruction* inst = (Instruction*) (rawCode + offset);
-        Assembler::UpdateLuiOriValue(inst, inst->next(), (uint32_t)address);
+        AssemblerMIPSShared::UpdateLuiOriValue(inst, inst->next(), (uint32_t)address);
     }
 }
 
@@ -253,16 +253,6 @@ Assembler::ExtractLuiOriValue(Instruction* inst0, Instruction* inst1)
     uint32_t value = i0->extractImm16Value() << 16;
     value = value | i1->extractImm16Value();
     return value;
-}
-
-void
-Assembler::UpdateLuiOriValue(Instruction* inst0, Instruction* inst1, uint32_t value)
-{
-    MOZ_ASSERT(inst0->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
-    MOZ_ASSERT(inst1->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
-
-    ((InstImm*) inst0)->setImm16(Imm16::Upper(Imm32(value)));
-    ((InstImm*) inst1)->setImm16(Imm16::Lower(Imm32(value)));
 }
 
 void
@@ -284,7 +274,7 @@ Assembler::PatchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newVal
     MOZ_ASSERT(value == uint32_t(expectedValue.value));
 
     // Replace with new value
-    Assembler::UpdateLuiOriValue(inst, inst->next(), uint32_t(newValue.value));
+    AssemblerMIPSShared::UpdateLuiOriValue(inst, inst->next(), uint32_t(newValue.value));
 
     AutoFlushICache::flush(uintptr_t(inst), 8);
 }
@@ -293,7 +283,7 @@ void
 Assembler::PatchInstructionImmediate(uint8_t* code, PatchedImmPtr imm)
 {
     InstImm* inst = (InstImm*)code;
-    Assembler::UpdateLuiOriValue(inst, inst->next(), (uint32_t)imm.value);
+    AssemblerMIPSShared::UpdateLuiOriValue(inst, inst->next(), (uint32_t)imm.value);
 }
 
 uint32_t
@@ -323,14 +313,4 @@ Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
     }
 
     AutoFlushICache::flush(uintptr_t(i2), 4);
-}
-
-void
-Assembler::UpdateBoundsCheck(uint32_t heapSize, Instruction* inst)
-{
-    InstImm* i0 = (InstImm*) inst;
-    InstImm* i1 = (InstImm*) i0->next();
-
-    // Replace with new value
-    Assembler::UpdateLuiOriValue(i0, i1, heapSize);
 }

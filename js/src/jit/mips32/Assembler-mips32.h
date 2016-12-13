@@ -130,7 +130,6 @@ class Assembler : public AssemblerMIPSShared
         return 2 * sizeof(uint32_t);
     }
     static uint32_t ExtractLuiOriValue(Instruction* inst0, Instruction* inst1);
-    static void UpdateLuiOriValue(Instruction* inst0, Instruction* inst1, uint32_t value);
 
     static void PatchDataWithValueCheck(CodeLocationLabel label, ImmPtr newValue,
                                         ImmPtr expectedValue);
@@ -141,8 +140,6 @@ class Assembler : public AssemblerMIPSShared
     static uint32_t ExtractInstructionImmediate(uint8_t* code);
 
     static void ToggleCall(CodeLocationLabel inst_, bool enabled);
-
-    static void UpdateBoundsCheck(uint32_t logHeapSize, Instruction* inst);
 }; // Assembler
 
 static const uint32_t NumIntArgRegs = 4;
