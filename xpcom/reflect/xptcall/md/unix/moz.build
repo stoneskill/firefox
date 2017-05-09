@@ -159,7 +159,7 @@ if CONFIG['OS_ARCH'] in ('Linux', 'FreeBSD', 'NetBSD', 'OpenBSD'):
             'xptcstubs_linux_m68k.cpp',
         ]
     if 'mips' in CONFIG['OS_TEST']:
-        if 'mips64' in CONFIG['OS_TEST']:
+        if CONFIG['OS_BIT'] == '64':
             SOURCES += [
                 'xptcinvoke_asm_mips64.S',
                 'xptcinvoke_mips64.cpp',
