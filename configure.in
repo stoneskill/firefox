@@ -971,7 +971,6 @@ fi
 # Before this used `uname -m` when not cross compiling
 # but that breaks when you have a 64 bit kernel with a 32 bit userland.
 OS_TEST="${target_cpu}"
-OS_BIT="getconf LONG_BIT"
 
 HOST_OS_ARCH=`echo $host_os | sed -e 's|/|_|g'`
 
