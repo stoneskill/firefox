@@ -66,7 +66,8 @@ wasm::HasCompilerSupport(ExclusiveContext* cx)
         return false;
 #endif
 
-#if defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_ARM64)
+#if defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_ARM64) || \
+    defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
     return false;
 #else
     return true;
