@@ -204,6 +204,17 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////
+// MIPS defines
+
+#if defined(__mips__) && !defined(SK_BUILD_NO_OPTS)
+    #define SK_CPU_MIPS
+#endif
+
+#if !defined(SK_MIPS_HAS_LS3) && defined(_MIPS_ARCH_LOONGSON3A)
+    #define SK_MIPS_HAS_LS3
+#endif
+
+//////////////////////////////////////////////////////////////////////
 
 #if !defined(SKIA_IMPLEMENTATION)
     #define SKIA_IMPLEMENTATION 0
