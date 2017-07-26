@@ -14,6 +14,8 @@
 
 #if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
     #include "SkColor_opts_SSE2.h"
+#elif defined(SK_MIPS_HAS_LS3)
+    #include "SkColor_opts_LS3.h"
 #endif
 
 namespace SK_OPTS_NS {
@@ -29,7 +31,7 @@ void blit_row_color32(SkPMColor* dst, const SkPMColor* src, int count, SkPMColor
     invA += invA >> 7;
     SkASSERT(invA < 256);  // We've should have already handled alpha == 0 externally.
 
-#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2 || defined(SK_MIPS_HAS_LS3)
     __m128i colorHighAndRound = _mm_add_epi16(_mm_unpacklo_epi8(_mm_setzero_si128(), _mm_set1_epi32(color)), _mm_set1_epi16(128));
     __m128i invA_16x = _mm_set1_epi16(invA);
     #define BLIT_ROW_COLOR32_FN(px, lohi) \
@@ -118,7 +120,7 @@ void blit_row_s32a_opaque(SkPMColor* dst, const SkPMColor* src, int len, U8CPU a
         len -= 16;
     }
 
-#elif SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
+#elif SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2 || defined(SK_MIPS_HAS_LS3)
     while (len >= 16) {
         // Load 16 source pixels.
         auto s0 = _mm_loadu_si128((const __m128i*)(src) + 0),
