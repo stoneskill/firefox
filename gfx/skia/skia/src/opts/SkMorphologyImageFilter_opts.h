@@ -13,7 +13,7 @@ namespace SK_OPTS_NS {
 enum MorphType { kDilate, kErode };
 enum class MorphDirection { kX, kY };
 
-#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2 || defined(SK_MIPS_HAS_LS3)
 template<MorphType type, MorphDirection direction>
 static void morph(const SkPMColor* src, SkPMColor* dst,
                   int radius, int width, int height, int srcStride, int dstStride) {
