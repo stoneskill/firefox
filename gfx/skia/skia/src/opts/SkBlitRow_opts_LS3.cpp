@@ -6,6 +6,7 @@
  */
 
 #include "SkBlitRow_opts_LS3.h"
+#include "SkBlitMask.h"
 #include "SkColorPriv.h"
 #include "SkColor_opts_LS3.h"
 #include "SkDither.h"
@@ -1035,4 +1036,20 @@ SkBlitRow::Proc32 SkBlitRow::PlatformProcs32(unsigned flags) {
 #else
     return nullptr;
 #endif
+}
+
+SkBlitMask::BlitLCD16RowProc SkBlitMask::PlatformBlitRowProcs16(bool isOpaque) {
+#if defined(SK_MIPS_HAS_LS3)
+    if (isOpaque) {
+        return SkBlitLCD16OpaqueRow_LS3;
+    } else {
+        return SkBlitLCD16Row_LS3;
+    }
+#else
+    return nullptr;
+#endif
+}
+
+SkBlitMask::RowProc SkBlitMask::PlatformRowProcs(SkColorType, SkMask::Format, RowFlags) {
+    return nullptr;
 }
