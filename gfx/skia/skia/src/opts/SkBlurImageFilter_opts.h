@@ -13,13 +13,15 @@
 
 #if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
     #include <immintrin.h>
+#elif defined(SK_MIPS_HAS_LS3)
+    #include "MMIHelpers.h"
 #endif
 
 namespace SK_OPTS_NS {
 
 enum class BlurDirection { kX, kY };
 
-#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2 || defined(SK_MIPS_HAS_LS3)
 #if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE41
 // ARGB -> 000A 000R 000G 000B
 static inline __m128i expand(SkPMColor p) {
@@ -33,6 +35,30 @@ static inline SkPMColor repack(__m128i p) {
 };
 #define mullo_epi32 _mm_mullo_epi32
 
+#elif defined(SK_MIPS_HAS_LS3)
+// ARGB -> 000A 000R 000G 000B
+static inline __m128i expand(int p) {
+    auto result = _mm_cvtsi32_si128(p);
+    result = _mm_unpacklo_epi8(result, _mm_setzero_si128());
+    result = _mm_unpacklo_epi16(result, _mm_setzero_si128());
+    return result;
+};
+// Axxx Rxxx Gxxx Bxxx -> ARGB
+static inline SkPMColor repack(__m128i p) {
+    p = _mm_srli_epi32(p, 24);  // 000A 000R 000G 000B
+    p = _mm_packs_epi32(p, p);  // xxxx xxxx 0A0R 0G0B
+    p = _mm_packus_epi16(p, p); // xxxx xxxx xxxx ARGB
+    return _mm_cvtsi128_si32(p);
+};
+
+// _mm_mullo_epi32 is not available, so use the standard trick to emulate it.
+static inline __m128i mullo_epi32(__m128i a, __m128i b) {
+    __m128i p02 = _mm_mul_epu32(a, b),
+            p13 = _mm_mul_epu32(_mm_srli_si128(a, 4),
+                                _mm_srli_si128(b, 4));
+    return _mm_unpacklo_epi32(_mm_shuffle_epi32_0020(p02),
+                              _mm_shuffle_epi32_0020(p13));
+};
 #else
 // ARGB -> 000A 000R 000G 000B
 static inline __m128i expand(int p) {
