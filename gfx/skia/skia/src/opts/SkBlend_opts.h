@@ -17,6 +17,8 @@ ninja -C out/Release dm nanobench ; and ./out/Release/dm --match Blend_opts ; an
 
 #if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
     #include <immintrin.h>
+#elif defined(SK_MIPS_HAS_LS3)
+    #include "MMIHelpers.h"
 #endif
 
 namespace SK_OPTS_NS {
@@ -38,7 +40,7 @@ static inline void srcover_srgb_srgb_4(uint32_t* dst, const uint32_t* src) {
     srcover_srgb_srgb_1(dst  , *src  );
 }
 
-#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSE2 || defined(SK_MIPS_HAS_LS3)
 
     static inline __m128i load(const uint32_t* p) {
         return _mm_loadu_si128(reinterpret_cast<const __m128i*>(p));
