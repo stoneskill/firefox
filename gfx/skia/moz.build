@@ -639,7 +639,7 @@ elif CONFIG['CPU_ARCH'] in ('arm', 'aarch64') and CONFIG['GNU_CC']:
 elif CONFIG['CPU_ARCH'].startswith('mips'):
     SOURCES += [
 	'skia/src/opts/SkBitmapFilter_opts_LS3.cpp',
-        'skia/src/opts/SkBitmapProcState_opts_none.cpp',
+        'skia/src/opts/SkBitmapProcState_opts_LS3.cpp',
         'skia/src/opts/SkBlitRow_opts_LS3.cpp',
     ]
 else:
