@@ -660,9 +660,9 @@ void
 MacroAssembler::branchTestMagic(Condition cond, const Address& valaddr, JSWhyMagic why, Label* label)
 {
     uint64_t magic = MagicValue(why).asRawBits();
-    ScratchRegisterScope scratch(*this);
-    loadPtr(valaddr, scratch);
-    ma_b(scratch, ImmWord(magic), label, cond);
+    SecondScratchRegisterScope scratch2(*this);
+    loadPtr(valaddr, scratch2);
+    ma_b(scratch2, ImmWord(magic), label, cond);
 }
 
 // ========================================================================
