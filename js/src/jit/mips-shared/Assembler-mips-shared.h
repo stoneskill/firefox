@@ -897,6 +897,9 @@ class AssemblerMIPSShared : public AssemblerShared
   public:
     AssemblerMIPSShared()
       : m_buffer(),
+#if defined(_MIPS_ARCH_LOONGSON3A)
+        consecutiveLoads(0),
+#endif
         isFinished(false)
     { }
 
@@ -932,6 +935,10 @@ class AssemblerMIPSShared : public AssemblerShared
 
   protected:
     bool isFinished;
+
+#if defined(_MIPS_ARCH_LOONGSON3A)
+    uint32_t consecutiveLoads;
+#endif
   public:
     void finish();
     bool asmMergeWith(const AssemblerMIPSShared& other);
@@ -957,7 +964,7 @@ class AssemblerMIPSShared : public AssemblerShared
     // instruction gets written into the instruction stream. If dest is not null
     // it is interpreted as a pointer to the location that we want the
     // instruction to be written.
-    BufferOffset writeInst(uint32_t x, uint32_t* dest = nullptr);
+    BufferOffset writeInst(uint32_t x, bool isUnsafeLoad = false, uint32_t* dest = nullptr);
     // A static variant for the cases where we don't want to have an assembler
     // object at all. Normally, you would use the dummy (nullptr) object.
     static void WriteInstStatic(uint32_t x, uint32_t* dest);
