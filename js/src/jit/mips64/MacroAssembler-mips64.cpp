@@ -2209,40 +2209,179 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
 void
 MacroAssembler::PushRegsInMask(LiveRegisterSet set)
 {
-    int32_t diff = set.gprs().size() * sizeof(intptr_t) +
+    const int32_t reserved = set.gprs().size() * sizeof(intptr_t) +
         set.fpus().getPushSizeInBytes();
-    const int32_t reserved = diff;
 
     reserveStack(reserved);
-    for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
-        diff -= sizeof(intptr_t);
-        storePtr(*iter, Address(StackPointer, diff));
+
+    if (isLoongson() && reserved >= (sizeof(intptr_t) * 4)) {
+        Label aligned, done;
+
+        as_andi(SecondScratchReg, sp, ABIStackAlignment - 1);
+        ma_b(SecondScratchReg, zero, &aligned, Equal, ShortJump);
+
+        int32_t diff = reserved;
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
+            diff -= sizeof(intptr_t);
+            storePtr(*iter, Address(StackPointer, diff));
+        }
+        for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush()); iter.more(); ++iter) {
+            diff -= sizeof(double);
+            storeDouble(*iter, Address(StackPointer, diff));
+        }
+        MOZ_ASSERT(diff == 0);
+
+        ma_b(&done, ShortJump);
+        bind(&aligned);
+
+        diff = 0;
+        for (FloatRegisterIterator iter(set.fpus().reduceSetForPush()); iter.more();) {
+            FloatRegister pair[2];
+            pair[0] = *iter;
+            ++iter;
+            if (!iter.more()) {
+                storeDouble(pair[0], Address(StackPointer, diff));
+                diff += sizeof(double);
+                break;
+            }
+            pair[1] = *iter;
+            ++iter;
+            as_gssq(pair[1], pair[0], StackPointer, diff);
+            diff += sizeof(double) * 2;
+        }
+        if ((diff % (sizeof(intptr_t) * 2)) == 0) {
+            for (GeneralRegisterIterator iter(set.gprs()); iter.more();) {
+                Register pair[2];
+                pair[0] = *iter;
+                ++iter;
+                if (!iter.more()) {
+                    storePtr(pair[0], Address(StackPointer, diff));
+                    diff += sizeof(intptr_t);
+                    break;
+                }
+                pair[1] = *iter;
+                ++iter;
+                as_gssq(pair[1], pair[0], StackPointer, diff);
+                diff += sizeof(intptr_t) * 2;
+            }
+        } else {
+            for (GeneralRegisterIterator iter(set.gprs()); iter.more();) {
+                storePtr(*iter, Address(StackPointer, diff));
+                ++iter;
+                diff += sizeof(intptr_t);
+            }
+        }
+        MOZ_ASSERT(diff == reserved);
+        bind(&done);
+    } else {
+        int32_t diff = reserved;
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
+            diff -= sizeof(intptr_t);
+            storePtr(*iter, Address(StackPointer, diff));
+        }
+        for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush()); iter.more(); ++iter) {
+            diff -= sizeof(double);
+            storeDouble(*iter, Address(StackPointer, diff));
+        }
+        MOZ_ASSERT(diff == 0);
     }
-    for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush()); iter.more(); ++iter) {
-        diff -= sizeof(double);
-        storeDouble(*iter, Address(StackPointer, diff));
-    }
-    MOZ_ASSERT(diff == 0);
 }
 
 void
 MacroAssembler::PopRegsInMaskIgnore(LiveRegisterSet set, LiveRegisterSet ignore)
 {
-    int32_t diff = set.gprs().size() * sizeof(intptr_t) +
+    const int32_t reserved = set.gprs().size() * sizeof(intptr_t) +
         set.fpus().getPushSizeInBytes();
-    const int32_t reserved = diff;
 
-    for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
-        diff -= sizeof(intptr_t);
-        if (!ignore.has(*iter))
-          loadPtr(Address(StackPointer, diff), *iter);
+    if (isLoongson() && reserved >= (sizeof(intptr_t) * 4)) {
+        Label aligned, done;
+
+        as_andi(SecondScratchReg, sp, ABIStackAlignment - 1);
+        ma_b(SecondScratchReg, zero, &aligned, Equal, ShortJump);
+
+        int32_t diff = reserved;
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
+            diff -= sizeof(intptr_t);
+            if (!ignore.has(*iter))
+                loadPtr(Address(StackPointer, diff), *iter);
+        }
+        for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush()); iter.more(); ++iter) {
+            diff -= sizeof(double);
+            if (!ignore.has(*iter))
+                loadDouble(Address(StackPointer, diff), *iter);
+        }
+        MOZ_ASSERT(diff == 0);
+
+        ma_b(&done, ShortJump);
+        bind(&aligned);
+
+        diff = 0;
+        for (FloatRegisterIterator iter(set.fpus().reduceSetForPush()); iter.more();) {
+            FloatRegister pair[2];
+            pair[0] = *iter;
+            ++iter;
+            if (!iter.more()) {
+                if (!ignore.has(pair[0]))
+                    loadDouble(Address(StackPointer, diff), pair[0]);
+                diff += sizeof(double);
+                break;
+            }
+            pair[1] = *iter;
+            ++iter;
+            if (!ignore.has(pair[0]) && !ignore.has(pair[1]))
+                as_gslq(pair[1], pair[0], StackPointer, diff);
+            else if (!ignore.has(pair[0]))
+                loadDouble(Address(StackPointer, diff), pair[0]);
+            else if (!ignore.has(pair[1]))
+                loadDouble(Address(StackPointer, diff + sizeof(double)), pair[1]);
+            diff += sizeof(double) * 2;
+        }
+        if ((diff % (sizeof(intptr_t) * 2)) == 0) {
+            for (GeneralRegisterIterator iter(set.gprs()); iter.more();) {
+                Register pair[2];
+                pair[0] = *iter;
+                ++iter;
+                if (!iter.more()) {
+                    if (!ignore.has(pair[0]))
+                        loadPtr(Address(StackPointer, diff), pair[0]);
+                    diff += sizeof(intptr_t);
+                    break;
+                }
+                pair[1] = *iter;
+                ++iter;
+                if (!ignore.has(pair[0]) && !ignore.has(pair[1]))
+                    as_gslq(pair[1], pair[0], StackPointer, diff);
+                else if (!ignore.has(pair[0]))
+                    loadPtr(Address(StackPointer, diff), pair[0]);
+                else if (!ignore.has(pair[1]))
+                    loadPtr(Address(StackPointer, diff + sizeof(intptr_t)), pair[1]);
+                diff += sizeof(intptr_t) * 2;
+            }
+        } else {
+            for (GeneralRegisterIterator iter(set.gprs()); iter.more();) {
+                if (!ignore.has(*iter))
+                    loadPtr(Address(StackPointer, diff), *iter);
+                ++iter;
+                diff += sizeof(intptr_t);
+            }
+        }
+        MOZ_ASSERT(diff == reserved);
+        bind(&done);
+    } else {
+        int32_t diff = reserved;
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
+            diff -= sizeof(intptr_t);
+            if (!ignore.has(*iter))
+                loadPtr(Address(StackPointer, diff), *iter);
+        }
+        for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush()); iter.more(); ++iter) {
+            diff -= sizeof(double);
+            if (!ignore.has(*iter))
+                loadDouble(Address(StackPointer, diff), *iter);
+        }
+        MOZ_ASSERT(diff == 0);
     }
-    for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush()); iter.more(); ++iter) {
-        diff -= sizeof(double);
-        if (!ignore.has(*iter))
-          loadDouble(Address(StackPointer, diff), *iter);
-    }
-    MOZ_ASSERT(diff == 0);
+
     freeStack(reserved);
 }
 
