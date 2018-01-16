@@ -984,7 +984,11 @@ static inline JS_VALUE_CONSTEXPR JS::Value UndefinedValue();
 static MOZ_ALWAYS_INLINE double
 GenericNaN()
 {
+#if defined(__mips__) && !defined(__mips_nan2008)
+  return mozilla::SpecificNaN<double>(0, 0x7FFFFFFFFFFFFULL);
+#else
   return mozilla::SpecificNaN<double>(0, 0x8000000000000ULL);
+#endif
 }
 
 /* MSVC with PGO miscompiles this function. */
@@ -1461,12 +1465,20 @@ CanonicalizedDoubleValue(double d)
      */
 #if defined(JS_VALUE_IS_CONSTEXPR)
     return IMPL_TO_JSVAL(MOZ_UNLIKELY(mozilla::IsNaN(d))
+#if defined(__mips__) && !defined(__mips_nan2008)
+                         ? (jsval_layout) { .asBits = 0x7FF7FFFFFFFFFFFFLL }
+#else
                          ? (jsval_layout) { .asBits = 0x7FF8000000000000LL }
+#endif
                          : (jsval_layout) { .asDouble = d });
 #else
     jsval_layout l;
     if (MOZ_UNLIKELY(d != d))
+#if defined(__mips__) && !defined(__mips_nan2008)
+        l.asBits = 0x7FF7FFFFFFFFFFFFLL;
+#else
         l.asBits = 0x7FF8000000000000LL;
+#endif
     else
         l.asDouble = d;
     return IMPL_TO_JSVAL(l);
