@@ -126,9 +126,12 @@ PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint64_t* args,
 
         case nsXPTType::T_FLOAT:
               if (iCount < PARAM_FPR_COUNT)
-                  dp->val.f  = (double)fprData[iCount++];
+                  // The value in fpu register is already prepared to
+                  // be retrieved as a float. Therefore, we pass the
+                  // value verbatim, as a float without conversion.
+                  dp->val.f  = *((float*)&fprData[iCount++]);
               else
-                  dp->val.f  = *((double*)ap++);
+                  dp->val.f  = *((float*)ap++);
               break;
 
         case nsXPTType::T_DOUBLE:
