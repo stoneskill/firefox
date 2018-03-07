@@ -13079,9 +13079,12 @@ nsGlobalWindow::RunTimeoutHandler(Timeout* aTimeout,
 }
 
 bool
-nsGlobalWindow::RescheduleTimeout(Timeout* aTimeout, const TimeStamp& now,
-                                  bool aRunningPendingTimeouts)
+nsGlobalWindow::RescheduleTimeout(Timeout* aTimeout,
+                                  const TimeStamp& aLastCallbackTime,
+                                  const TimeStamp& aCurrentNow)
 {
+  MOZ_DIAGNOSTIC_ASSERT(aLastCallbackTime <= aCurrentNow);
+
   if (!aTimeout->mIsInterval) {
     if (aTimeout->mTimer) {
       // The timeout still has an OS timer, and it's not an interval,
@@ -13100,18 +13103,8 @@ nsGlobalWindow::RescheduleTimeout(Timeout* aTimeout, const TimeStamp& now,
     TimeDuration::FromMilliseconds(std::max(aTimeout->mInterval,
                                           uint32_t(DOMMinTimeoutValue())));
 
-  // If we're running pending timeouts, set the next interval to be
-  // relative to "now", and not to when the timeout that was pending
-  // should have fired.
-  TimeStamp firingTime;
-  if (aRunningPendingTimeouts) {
-    firingTime = now + nextInterval;
-  } else {
-    firingTime = aTimeout->mWhen + nextInterval;
-  }
-
-  TimeStamp currentNow = TimeStamp::Now();
-  TimeDuration delay = firingTime - currentNow;
+  TimeStamp firingTime = aLastCallbackTime + nextInterval;;
+  TimeDuration delay = firingTime - aCurrentNow;
 
   // And make sure delay is nonnegative; that might happen if the timer
   // thread is firing our timers somewhat early or if they're taking a long
@@ -13124,14 +13117,14 @@ nsGlobalWindow::RescheduleTimeout(Timeout* aTimeout, const TimeStamp& now,
     if (IsFrozen()) {
       aTimeout->mTimeRemaining = delay;
     } else if (IsSuspended()) {
-      aTimeout->mWhen = currentNow + delay;
+      aTimeout->mWhen = aCurrentNow + delay;
     } else {
       MOZ_ASSERT_UNREACHABLE("Window should be frozen or suspended.");
     }
     return true;
   }
 
-  aTimeout->mWhen = currentNow + delay;
+  aTimeout->mWhen = aCurrentNow + delay;
 
   // Reschedule the OS timer. Don't bother returning any error codes if
   // this fails since the callers of this method don't care about them.
@@ -13320,9 +13313,16 @@ nsGlobalWindow::RunTimeout(Timeout* aTimeout)
       return;
     }
 
+    // If we need to reschedule a setInterval() the delay should be
+    // calculated based on when its callback started to execute.  So
+    // save off the last time before updating our "now" timestamp to
+    // account for its callback execution time.
+    TimeStamp lastCallbackTime = now;
+    now = TimeStamp::Now();
+
     // If we have a regular interval timer, we re-schedule the
     // timeout, accounting for clock drift.
-    bool needsReinsertion = RescheduleTimeout(timeout, now, !aTimeout);
+    bool needsReinsertion = RescheduleTimeout(timeout, lastCallbackTime, now);
 
     // Running a timeout can cause another timeout to be deleted, so
     // we need to reset the pointer to the following timeout.
