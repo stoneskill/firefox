@@ -1429,8 +1429,9 @@ public:
   // Return true if |aTimeout| was cleared while its handler ran.
   bool RunTimeoutHandler(nsTimeout* aTimeout, nsIScriptContext* aScx);
   // Return true if |aTimeout| needs to be reinserted into the timeout list.
-  bool RescheduleTimeout(nsTimeout* aTimeout, const TimeStamp& now,
-                         bool aRunningPendingTimeouts);
+  bool RescheduleTimeout(nsTimeout* aTimeout,
+                         const TimeStamp& aLastCallbackTime,
+                         const TimeStamp& aCurrentNow);
 
   void ClearAllTimeouts();
   // Insert aTimeout into the list, before all timeouts that would
