@@ -1885,6 +1885,18 @@ CodeGeneratorMIPSShared::emitWasmLoad(T* lir)
     MOZ_ASSERT(offset <= INT32_MAX);
 
     Register ptr = ToRegister(lir->ptr());
+#ifdef JS_CODEGEN_MIPS64
+    /*
+     * like : load(-4). here -4 we should treat is as a unsigned int.
+     * for wasm compiler, we do it in EffectiveAddressAnalysis.cpp.
+     * this can also happen in ion compile. for example:
+     * wasmmodule.load = wasm function.
+     * wasmmodule.load(-4).
+     * we can not do it in CodeGenerator::visitWasmParameter. because that place
+     * access negative number. so we handle here and we do not use a branch.
+     */
+    masm.ma_dins(ptr, zero, Imm32(32), Imm32(32));
+#endif
 
     // Maybe add the offset.
     if (offset) {
@@ -1975,6 +1987,18 @@ CodeGeneratorMIPSShared::emitWasmStore(T* lir)
     MOZ_ASSERT(offset <= INT32_MAX);
 
     Register ptr = ToRegister(lir->ptr());
+#ifdef JS_CODEGEN_MIPS64
+    /*
+     * like : load(-4). here -4 we should treat is as a unsigned int.
+     * for wasm compiler, we do it in EffectiveAddressAnalysis.cpp.
+     * this can also happen in ion compile. for example:
+     * wasmmodule.load = wasm function.
+     * wasmmodule.load(-4).
+     * we can not do it in CodeGenerator::visitWasmParameter. because that place
+     * access negative number. so we handle here and we do not use a branch.
+     */
+    masm.ma_dins(ptr, zero, Imm32(32), Imm32(32));
+#endif
 
     // Maybe add the offset.
     if (offset) {
@@ -2095,12 +2119,27 @@ CodeGeneratorMIPSShared::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins)
             masm.ma_load(ToRegister(out), Address(HeapReg, ptrImm),
                          static_cast<LoadStoreSize>(size), isSigned ? SignExtend : ZeroExtend);
         }
+        masm.append(mir->access(), masm.size() - 4, masm.framePushed());
         return;
     }
 
     Register ptrReg = ToRegister(ptr);
 
+#ifdef JS_CODEGEN_MIPS32
     if (!mir->needsBoundsCheck()) {
+#endif
+#ifdef JS_CODEGEN_MIPS64
+        /*
+         * like : load(-4). here -4 we should treat is as a unsigned int.
+         * for wasm compiler, we do it in EffectiveAddressAnalysis.cpp.
+         * this can also happen in ion compile. for example:
+         * wasmmodule.load = wasm function.
+         * wasmmodule.load(-4).
+         * we can not do it in CodeGenerator::visitWasmParameter. because that place
+         * access negative number. so we handle here and we do not use a branch.
+         */
+        masm.ma_dins(ptrReg, zero, Imm32(32), Imm32(32));
+#endif
         if (isFloat) {
             if (size == 32) {
                 masm.loadFloat32(BaseIndex(HeapReg, ptrReg, TimesOne), ToFloatRegister(out));
@@ -2111,8 +2150,11 @@ CodeGeneratorMIPSShared::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins)
             masm.ma_load(ToRegister(out), BaseIndex(HeapReg, ptrReg, TimesOne),
                          static_cast<LoadStoreSize>(size), isSigned ? SignExtend : ZeroExtend);
         }
+        masm.append(mir->access(), masm.size() - 4, masm.framePushed());
         return;
+#ifdef JS_CODEGEN_MIPS32
     }
+#endif
 
     BufferOffset bo = masm.ma_BoundsCheck(ScratchRegister);
 
@@ -2184,13 +2226,28 @@ CodeGeneratorMIPSShared::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins)
             masm.ma_store(ToRegister(value), Address(HeapReg, ptrImm),
                           static_cast<LoadStoreSize>(size), isSigned ? SignExtend : ZeroExtend);
         }
+        masm.append(mir->access(), masm.size() - 4, masm.framePushed());
         return;
     }
 
     Register ptrReg = ToRegister(ptr);
     Address dstAddr(ptrReg, 0);
 
+#ifdef JS_CODEGEN_MIPS32
     if (!mir->needsBoundsCheck()) {
+#endif
+#ifdef JS_CODEGEN_MIPS64
+        /*
+         * like : load(-4). here -4 we should treat is as a unsigned int.
+         * for wasm compiler, we do it in EffectiveAddressAnalysis.cpp.
+         * this can also happen in ion compile. for example:
+         * wasmmodule.load = wasm function.
+         * wasmmodule.load(-4).
+         * we can not do it in CodeGenerator::visitWasmParameter. because that place
+         * access negative number. so we handle here and we do not use a branch.
+         */
+        masm.ma_dins(ptrReg, zero, Imm32(32), Imm32(32));
+#endif
         if (isFloat) {
             FloatRegister freg = ToFloatRegister(value);
             BaseIndex bi(HeapReg, ptrReg, TimesOne);
@@ -2202,8 +2259,11 @@ CodeGeneratorMIPSShared::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins)
             masm.ma_store(ToRegister(value), BaseIndex(HeapReg, ptrReg, TimesOne),
                           static_cast<LoadStoreSize>(size), isSigned ? SignExtend : ZeroExtend);
         }
+        masm.append(mir->access(), masm.size() - 4, masm.framePushed());
         return;
+#ifdef JS_CODEGEN_MIPS32
     }
+#endif
 
     BufferOffset bo = masm.ma_BoundsCheck(ScratchRegister);
 

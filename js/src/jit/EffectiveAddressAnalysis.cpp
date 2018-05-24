@@ -182,6 +182,10 @@ EffectiveAddressAnalysis::tryAddDisplacement(AsmJSMemoryAccess* ins, int32_t o)
     if (o < 0 ? (newOffset >= oldOffset) : (newOffset < oldOffset))
         return false;
 
+#ifdef JS_CODEGEN_MIPS64
+    if (newOffset < INT16_MIN  || newOffset > INT16_MAX)
+        return false;
+#endif
     // The offset must ultimately be written into the offset immediate of a load
     // or store instruction so don't allow folding of the offset is bigger.
     if (newOffset >= wasm::OffsetGuardLimit)
@@ -221,6 +225,13 @@ EffectiveAddressAnalysis::analyzeAsmJSHeapAccess(AsmJSMemoryAccess* ins)
             if (end >= imm && (uint32_t)end <= mir_->minWasmHeapLength())
                  ins->removeBoundsCheck();
         }
+#ifdef JS_CODEGEN_MIPS64
+        if (imm < 0) {
+            MInstruction* imm64 = MConstant::NewInt64(graph_.alloc(), uint32_t(imm));
+            ins->block()->insertBefore(ins, imm64);
+            ins->replaceBase(imm64);
+        }
+#endif
     } else if (base->isAdd()) {
         // Look for heap[a+i] where i is a constant offset, and fold the offset.
         // Alignment masks have already been moved out of the way by the

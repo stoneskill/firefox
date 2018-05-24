@@ -13,6 +13,7 @@
 #include "jsutil.h"
 
 #include "gc/Marking.h"
+#include "jit/Disassembler.h"
 #include "jit/ExecutableAllocator.h"
 #include "jit/JitCompartment.h"
 
@@ -1966,4 +1967,101 @@ AssemblerMIPSShared::UpdateLuiOriValue(Instruction* inst0, Instruction* inst1, u
 
     ((InstImm*) inst0)->setImm16(Imm16::Upper(Imm32(value)));
     ((InstImm*) inst1)->setImm16(Imm16::Lower(Imm32(value)));
+}
+
+uint8_t*
+js::jit::Disassembler::DisassembleHeapAccess(uint8_t* ptr, HeapAccess* access)
+{
+    Instruction* instr = (Instruction*)ptr;
+    Opcode opcode = instr->OpcodeFieldRaw();
+    if (opcode == op_ldc2) {
+        uint32_t function = ((InstReg*)instr)->extractFunctionField();
+        Register rt = toRT(*instr);
+        ComplexAddress addr(((InstImm*)instr)->extractBitField(10, 3),
+                            toRS(*instr).encoding(),
+                            toRD(*instr).encoding(),
+                            0);
+        size_t size = 0;
+        HeapAccess::Kind kind = HeapAccess::LoadSext32; // right?
+        if (function == ff_gsxwx) {
+            size = 4;
+        } else if (function == ff_gsxbx) {
+            size = 1;
+        } else if (function == ff_gsxhx) {
+            size = 2;
+        }
+        *access = HeapAccess(kind, size, addr, OtherOperand(rt.encoding()));
+    } else if (opcode == op_sdc2) {
+        HeapAccess::Kind kind = HeapAccess::Store;
+        uint32_t function = ((InstReg*)instr)->extractFunctionField();
+        OtherOperand otherOperand;
+        ComplexAddress addr(((InstImm*)instr)->extractBitField(10, 3),
+                            toRS(*instr).encoding(),
+                            toRD(*instr).encoding(),
+                            0);
+        size_t size = 0;
+        if (function == ff_gsxwx) {
+            size = 4;
+            Registers::RegisterID gpr = toRT(*instr).encoding();
+            otherOperand = OtherOperand(gpr);
+        } else if (function == ff_gsxdxc1) {
+            size = 8;
+            FloatRegisters::FPRegisterID fpr = FloatRegister::FromCode((instr->encode() & RTMask ) >> RTShift).encoding();
+            otherOperand = OtherOperand(fpr);
+        } else if (function == ff_gsxbx) {
+            size = 1;
+            Registers::RegisterID gpr = toRT(*instr).encoding();
+            otherOperand = OtherOperand(gpr);
+        } else if (function == ff_gsxhx) {
+            size = 2;
+            Registers::RegisterID gpr = toRT(*instr).encoding();
+            otherOperand = OtherOperand(gpr);
+        } else if (function == ff_gsxwxc1) {
+            size = 4;
+            FloatRegisters::FPRegisterID fpr = FloatRegister::FromCode((instr->encode() & RTMask ) >> RTShift).encoding();
+            otherOperand = OtherOperand(fpr);
+        }
+        *access = HeapAccess(kind, size, addr, otherOperand);
+    } else if (opcode == op_ldc1) {
+        HeapAccess::Kind kind = HeapAccess::Load;
+        size_t size = 8;
+        ComplexAddress addr(((InstImm*)instr)->extractBitField(15, 0),
+                            toRS(*instr).encoding(),
+                            Registers::Invalid,
+                            0);
+        FloatRegisters::FPRegisterID fpr = FloatRegister::FromCode((instr->encode() & RTMask ) >> RTShift).encoding();
+        OtherOperand otherOperand = OtherOperand(fpr);
+        *access = HeapAccess(kind, size, addr, otherOperand);
+    } else if (opcode == op_lbu) {
+        HeapAccess::Kind kind = HeapAccess::Load;
+        size_t size = 1;
+        ComplexAddress addr((int32_t)(((InstImm*)instr)->extractBitField(15, 0) << 16) >> 16,  // not need here, because disp must always > 0.
+                            toRS(*instr).encoding(),
+                            Registers::Invalid,
+                            0);
+        Registers::RegisterID gpr = toRT(*instr).encoding();
+        OtherOperand otherOperand = OtherOperand(gpr);
+        *access = HeapAccess(kind, size, addr, otherOperand);
+    } else if (opcode == op_lhu) {
+        HeapAccess::Kind kind = HeapAccess::Load;
+        size_t size = 2;
+        ComplexAddress addr((int32_t)(((InstImm*)instr)->extractBitField(15, 0) << 16) >> 16,  // not need here, because disp must always > 0.
+                            toRS(*instr).encoding(),
+                            Registers::Invalid,
+                            0);
+        Registers::RegisterID gpr = toRT(*instr).encoding();
+        OtherOperand otherOperand = OtherOperand(gpr);
+        *access = HeapAccess(kind, size, addr, otherOperand);
+    } else if (opcode == op_lwc1) {
+        HeapAccess::Kind kind = HeapAccess::Load;
+        size_t size = 4;
+        ComplexAddress addr(((InstImm*)instr)->extractBitField(15, 0),
+                            toRS(*instr).encoding(),
+                            Registers::Invalid,
+                            0);
+        FloatRegisters::FPRegisterID fpr = FloatRegister::FromCode((instr->encode() & RTMask ) >> RTShift).encoding();
+        OtherOperand otherOperand = OtherOperand(fpr);
+        *access = HeapAccess(kind, size, addr, otherOperand);
+    }
+    return ptr + 4;
 }

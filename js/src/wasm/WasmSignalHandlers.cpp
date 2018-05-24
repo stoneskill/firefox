@@ -166,6 +166,8 @@ class AutoSetHandlingSegFault
 #  define EPC_sig(p) ((p)->uc_mcontext.pc)
 #  define RSP_sig(p) ((p)->uc_mcontext.gregs[29])
 #  define RFP_sig(p) ((p)->uc_mcontext.gregs[30])
+#  define RFR_sig(p, i) ((p)->uc_mcontext.fpregs.fp_r.fp_dregs[i])
+#  define RGR_sig(p, i) ((p)->uc_mcontext.gregs[i])
 # endif
 #elif defined(__NetBSD__)
 # define XMM_sig(p,i) (((struct fxsave64*)(p)->uc_mcontext.__fpregs)->fx_xmm[i])
@@ -467,6 +469,43 @@ StoreValueFromGPImm(SharedMem<void*> addr, size_t size, int32_t imm)
 MOZ_COLD static void*
 AddressOfFPRegisterSlot(CONTEXT* context, FloatRegisters::Encoding encoding)
 {
+#if defined(__mips__)
+    switch (encoding) {
+      case FloatRegistersMIPSShared::f0: return &RFR_sig(context, 0);
+      case FloatRegistersMIPSShared::f1: return &RFR_sig(context, 1);
+      case FloatRegistersMIPSShared::f2: return &RFR_sig(context, 2);
+      case FloatRegistersMIPSShared::f3: return &RFR_sig(context, 3);
+      case FloatRegistersMIPSShared::f4: return &RFR_sig(context, 4);
+      case FloatRegistersMIPSShared::f5: return &RFR_sig(context, 5);
+      case FloatRegistersMIPSShared::f6: return &RFR_sig(context, 6);
+      case FloatRegistersMIPSShared::f7: return &RFR_sig(context, 7);
+      case FloatRegistersMIPSShared::f8: return &RFR_sig(context, 8);
+      case FloatRegistersMIPSShared::f9: return &RFR_sig(context, 9);
+      case FloatRegistersMIPSShared::f10: return &RFR_sig(context, 10);
+      case FloatRegistersMIPSShared::f11: return &RFR_sig(context, 11);
+      case FloatRegistersMIPSShared::f12: return &RFR_sig(context, 12);
+      case FloatRegistersMIPSShared::f13: return &RFR_sig(context, 13);
+      case FloatRegistersMIPSShared::f14: return &RFR_sig(context, 14);
+      case FloatRegistersMIPSShared::f15: return &RFR_sig(context, 15);
+      case FloatRegistersMIPSShared::f16: return &RFR_sig(context, 16);
+      case FloatRegistersMIPSShared::f17: return &RFR_sig(context, 17);
+      case FloatRegistersMIPSShared::f18: return &RFR_sig(context, 18);
+      case FloatRegistersMIPSShared::f19: return &RFR_sig(context, 19);
+      case FloatRegistersMIPSShared::f20: return &RFR_sig(context, 20);
+      case FloatRegistersMIPSShared::f21: return &RFR_sig(context, 21);
+      case FloatRegistersMIPSShared::f22: return &RFR_sig(context, 22);
+      case FloatRegistersMIPSShared::f23: return &RFR_sig(context, 23);
+      case FloatRegistersMIPSShared::f24: return &RFR_sig(context, 24);
+      case FloatRegistersMIPSShared::f25: return &RFR_sig(context, 25);
+      case FloatRegistersMIPSShared::f26: return &RFR_sig(context, 26);
+      case FloatRegistersMIPSShared::f27: return &RFR_sig(context, 27);
+      case FloatRegistersMIPSShared::f28: return &RFR_sig(context, 28);
+      case FloatRegistersMIPSShared::f29: return &RFR_sig(context, 29);
+      case FloatRegistersMIPSShared::f30: return &RFR_sig(context, 30);
+      case FloatRegistersMIPSShared::f31: return &RFR_sig(context, 31);
+      default: break;
+    }
+#else
     switch (encoding) {
       case X86Encoding::xmm0:  return &XMM_sig(context, 0);
       case X86Encoding::xmm1:  return &XMM_sig(context, 1);
@@ -486,12 +525,49 @@ AddressOfFPRegisterSlot(CONTEXT* context, FloatRegisters::Encoding encoding)
       case X86Encoding::xmm15: return &XMM_sig(context, 15);
       default: break;
     }
+#endif
     MOZ_CRASH();
 }
 
 MOZ_COLD static void*
 AddressOfGPRegisterSlot(EMULATOR_CONTEXT* context, Registers::Code code)
 {
+#if defined(__mips__)
+    switch (code) {
+      case Registers::at: return &RGR_sig(context, 1);
+      case Registers::r2: return &RGR_sig(context, 2);
+      case Registers::r3: return &RGR_sig(context, 3);
+      case Registers::r4: return &RGR_sig(context, 4);
+      case Registers::r5: return &RGR_sig(context, 5);
+      case Registers::r6: return &RGR_sig(context, 6);
+      case Registers::r7: return &RGR_sig(context, 7);
+      case Registers::r8: return &RGR_sig(context, 8);
+      case Registers::r9: return &RGR_sig(context, 9);
+      case Registers::r10: return &RGR_sig(context, 10);
+      case Registers::r11: return &RGR_sig(context, 11);
+      case Registers::r12: return &RGR_sig(context, 12);
+      case Registers::r13: return &RGR_sig(context, 13);
+      case Registers::r14: return &RGR_sig(context, 14);
+      case Registers::r15: return &RGR_sig(context, 15);
+      case Registers::r16: return &RGR_sig(context, 16);
+      case Registers::r17: return &RGR_sig(context, 17);
+      case Registers::r18: return &RGR_sig(context, 18);
+      case Registers::r19: return &RGR_sig(context, 19);
+      case Registers::r20: return &RGR_sig(context, 20);
+      case Registers::r21: return &RGR_sig(context, 21);
+      case Registers::r22: return &RGR_sig(context, 22);
+      case Registers::r23: return &RGR_sig(context, 23);
+      case Registers::r24: return &RGR_sig(context, 24);
+      case Registers::r25: return &RGR_sig(context, 25);
+      case Registers::r26: return &RGR_sig(context, 26);
+      case Registers::r27: return &RGR_sig(context, 27);
+      case Registers::r28: return &RGR_sig(context, 28);
+      case Registers::r29: return &RGR_sig(context, 29);
+      case Registers::r30: return &RGR_sig(context, 30);
+      case Registers::r31: return &RGR_sig(context, 31);
+      default: break;
+    }
+#else
     switch (code) {
       case X86Encoding::rax: return &RAX_sig(context);
       case X86Encoding::rcx: return &RCX_sig(context);
@@ -511,6 +587,7 @@ AddressOfGPRegisterSlot(EMULATOR_CONTEXT* context, Registers::Code code)
       case X86Encoding::r15: return &R15_sig(context);
       default: break;
     }
+#endif
     MOZ_CRASH();
 }
 # else
@@ -669,14 +746,18 @@ HandleMemoryAccess(EMULATOR_CONTEXT* context, uint8_t* pc, uint8_t* faultingAddr
 
     // Check x64 asm.js heap access invariants.
     MOZ_RELEASE_ASSERT(address.disp() >= 0);
+#if !defined(JS_CODEGEN_MIPS64)    // s7+0xffffffff -> new register
     MOZ_RELEASE_ASSERT(address.base() == HeapReg.code());
+#endif
     MOZ_RELEASE_ASSERT(!address.hasIndex() || address.index() != HeapReg.code());
     MOZ_RELEASE_ASSERT(address.scale() == 0);
     if (address.hasBase()) {
         uintptr_t base;
         StoreValueFromGPReg(SharedMem<void*>::unshared(&base), sizeof(uintptr_t),
                             AddressOfGPRegisterSlot(context, address.base()));
+#if !defined(JS_CODEGEN_MIPS64)    // s7+0xffffffff -> new register
         MOZ_RELEASE_ASSERT(reinterpret_cast<uint8_t*>(base) == instance.memoryBase());
+#endif
     }
     if (address.hasIndex()) {
         uintptr_t index;
@@ -1386,7 +1467,7 @@ ProcessHasSignalHandlers()
     if (sigaction(SIGSEGV, &faultHandler, &sPrevSEGVHandler))
         MOZ_CRASH("unable to install segv handler");
 
-#  if defined(JS_CODEGEN_ARM)
+#  if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS64)
     // On Arm Handle Unaligned Accesses
     struct sigaction busHandler;
     busHandler.sa_flags = SA_SIGINFO | SA_NODEFER;

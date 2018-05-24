@@ -424,6 +424,18 @@ CodeGeneratorMIPS64::emitWasmLoadI64(T* lir)
 
     Register ptr = ToRegister(lir->ptr());
 
+#ifdef JS_CODEGEN_MIPS64
+    /*
+     * like : load(-4). here -4 we should treat is as a unsigned int.
+     * for wasm compiler, we do it in EffectiveAddressAnalysis.cpp.
+     * this can also happen in ion compile. for example:
+     * wasmmodule.load = wasm function.
+     * wasmmodule.load(-4).
+     * we can not do it in CodeGenerator::visitWasmParameter. because that place
+     * access negative number. so we handle here and we do not use a branch.
+     */
+    masm.ma_dins(ptr, zero, Imm32(32), Imm32(32));
+#endif
     // Maybe add the offset.
     if (offset) {
         Register ptrPlusOffset = ToRegister(lir->ptrCopy());
