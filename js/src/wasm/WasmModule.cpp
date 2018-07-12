@@ -137,6 +137,35 @@ LinkData::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
            symbolicLinks.sizeOfExcludingThis(mallocSizeOf);
 }
 
+#if defined(JS_CODEGEN_MIPS64)
+uint8_t*
+MixedJumpData::serialize(uint8_t* cursor) const
+{
+    cursor = SerializePodVector(cursor, mixedJumps);
+    return cursor;
+}
+
+const uint8_t*
+MixedJumpData::deserialize(const uint8_t* cursor)
+{
+    cursor = DeserializePodVector(cursor, &mixedJumps);
+    return cursor;
+}
+
+size_t
+MixedJumpData::serializedSize() const
+{
+    return SerializedPodVectorSize(mixedJumps);
+}
+
+size_t
+MixedJumpData::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
+{
+    return mixedJumps.sizeOfExcludingThis(mallocSizeOf);
+}
+
+#endif
+
 size_t
 Import::serializedSize() const
 {
@@ -273,6 +302,9 @@ Module::serializedSize(size_t* maybeBytecodeSize, size_t* maybeCompiledSize) con
         *maybeCompiledSize = assumptions_.serializedSize() +
                              SerializedPodVectorSize(code_) +
                              linkData_.serializedSize() +
+#if defined(JS_CODEGEN_MIPS64)
+                             mixedJumpData_.serializedSize() +
+#endif
                              SerializedVectorSize(imports_) +
                              SerializedVectorSize(exports_) +
                              SerializedPodVectorSize(dataSegments_) +
@@ -309,6 +341,9 @@ Module::serialize(uint8_t* maybeBytecodeBegin, size_t maybeBytecodeSize,
         cursor = assumptions_.serialize(cursor);
         cursor = SerializePodVector(cursor, code_);
         cursor = linkData_.serialize(cursor);
+#if defined(JS_CODEGEN_MIPS64)
+        cursor = mixedJumpData_.serialize(cursor);
+#endif
         cursor = SerializeVector(cursor, imports_);
         cursor = SerializeVector(cursor, exports_);
         cursor = SerializePodVector(cursor, dataSegments_);
@@ -355,6 +390,13 @@ Module::deserialize(const uint8_t* bytecodeBegin, size_t bytecodeSize,
     if (!cursor)
         return nullptr;
 
+#if defined(JS_CODEGEN_MIPS64)
+    MixedJumpData mixedJumpData;
+    cursor = mixedJumpData.deserialize(cursor);
+    if (!cursor)
+        return nullptr;
+#endif
+
     ImportVector imports;
     cursor = DeserializeVector(cursor, &imports);
     if (!cursor)
@@ -393,6 +435,9 @@ Module::deserialize(const uint8_t* bytecodeBegin, size_t bytecodeSize,
     return js_new<Module>(Move(assumptions),
                           Move(code),
                           Move(linkData),
+#if defined(JS_CODEGEN_MIPS64)
+                          Move(mixedJumpData),
+#endif
                           Move(imports),
                           Move(exports),
                           Move(dataSegments),
@@ -503,6 +548,9 @@ Module::addSizeOfMisc(MallocSizeOf mallocSizeOf,
              assumptions_.sizeOfExcludingThis(mallocSizeOf) +
              code_.sizeOfExcludingThis(mallocSizeOf) +
              linkData_.sizeOfExcludingThis(mallocSizeOf) +
+#if defined(JS_CODEGEN_MIPS64)
+             mixedJumpData_.sizeOfExcludingThis(mallocSizeOf) +
+#endif
              SizeOfVectorExcludingThis(imports_, mallocSizeOf) +
              SizeOfVectorExcludingThis(exports_, mallocSizeOf) +
              dataSegments_.sizeOfExcludingThis(mallocSizeOf) +
@@ -1006,7 +1054,11 @@ Module::instantiate(JSContext* cx,
     if (cx->compartment()->isDebuggee() || !metadata_->funcNames.empty())
         maybeBytecode = bytecode_.get();
 
+#if defined(JS_CODEGEN_MIPS64)
+    auto codeSegment = CodeSegment::create(cx, code_, linkData_, mixedJumpData_, *metadata_, memory);
+#else
     auto codeSegment = CodeSegment::create(cx, code_, linkData_, *metadata_, memory);
+#endif
     if (!codeSegment)
         return false;
 

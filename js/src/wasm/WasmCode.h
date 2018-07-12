@@ -30,6 +30,9 @@ namespace wasm {
 
 struct LinkData;
 struct Metadata;
+#if defined(JS_CODEGEN_MIPS64)
+struct MixedJumpData;
+#endif
 
 // A wasm CodeSegment owns the allocated executable code for a wasm module.
 // This allocation also currently includes the global data segment, which allows
@@ -72,6 +75,9 @@ class CodeSegment
     static UniqueCodeSegment create(JSContext* cx,
                                     const Bytes& code,
                                     const LinkData& linkData,
+#if defined(JS_CODEGEN_MIPS64)
+                                    const MixedJumpData& mixedJumps,
+#endif
                                     const Metadata& metadata,
                                     HandleWasmMemoryObject memory);
     ~CodeSegment();

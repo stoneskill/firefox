@@ -74,6 +74,28 @@ struct LinkData : LinkDataCacheablePod
     WASM_DECLARE_SERIALIZABLE(LinkData)
 };
 
+#if defined(JS_CODEGEN_MIPS64)
+struct MixedJumpData
+{
+    struct MixedJump
+    {
+        uint32_t src;
+        uint32_t mid;
+        uintptr_t target;
+
+        MixedJump(uint32_t src, uint32_t mid, uintptr_t target)
+          : src(src),
+            mid(mid),
+            target(target)
+        { }
+    };
+    typedef Vector<MixedJump, 0, SystemAllocPolicy> MixedJumpVector;
+    MixedJumpVector mixedJumps;
+
+    WASM_DECLARE_SERIALIZABLE(MixedJumpData)
+};
+#endif
+
 typedef UniquePtr<LinkData> UniqueLinkData;
 typedef UniquePtr<const LinkData> UniqueConstLinkData;
 
@@ -147,6 +169,9 @@ class Module : public JS::WasmModule
     const Assumptions       assumptions_;
     const Bytes             code_;
     const LinkData          linkData_;
+#if defined(JS_CODEGEN_MIPS64)
+    const MixedJumpData     mixedJumpData_;
+#endif
     const ImportVector      imports_;
     const ExportVector      exports_;
     const DataSegmentVector dataSegments_;
@@ -169,6 +194,9 @@ class Module : public JS::WasmModule
     Module(Assumptions&& assumptions,
            Bytes&& code,
            LinkData&& linkData,
+#if defined(JS_CODEGEN_MIPS64)
+           MixedJumpData&& mixedJumpData,
+#endif
            ImportVector&& imports,
            ExportVector&& exports,
            DataSegmentVector&& dataSegments,
@@ -178,6 +206,9 @@ class Module : public JS::WasmModule
       : assumptions_(Move(assumptions)),
         code_(Move(code)),
         linkData_(Move(linkData)),
+#if defined(JS_CODEGEN_MIPS64)
+        mixedJumpData_(Move(mixedJumpData)),
+#endif
         imports_(Move(imports)),
         exports_(Move(exports)),
         dataSegments_(Move(dataSegments)),

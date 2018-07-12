@@ -118,6 +118,23 @@ StaticallyLink(CodeSegment& cs, const LinkData& linkData, ExclusiveContext* cx)
     *(float*)(cs.globalData() + NaN32GlobalDataOffset) = GenericNaN();
 }
 
+#if defined(JS_CODEGEN_MIPS64)
+static void
+StaticallyMixedJump(CodeSegment& cs, const MixedJumpData& mixedJumpData)
+{
+    uint8_t* baseAddress = cs.base();
+    for (MixedJumpData::MixedJump mjp : mixedJumpData.mixedJumps) {
+        uint8_t* src = baseAddress + mjp.src;
+        uint8_t* mid = nullptr;
+        uint8_t* target = baseAddress + mjp.target;
+        if (mjp.mid != INT_MIN) {  // here should call BufferOffset.assigned
+            mid = baseAddress + mjp.mid;
+        }
+        Assembler::PatchMixedJump(src, mid, target);
+    }
+}
+#endif
+
 static void
 SpecializeToMemory(uint8_t* prevMemoryBase, CodeSegment& cs, const Metadata& metadata,
                    ArrayBufferObjectMaybeShared& buffer)
@@ -222,6 +239,9 @@ SendCodeRangesToProfiler(JSContext* cx, CodeSegment& cs, const Bytes& bytecode,
 CodeSegment::create(JSContext* cx,
                     const Bytes& bytecode,
                     const LinkData& linkData,
+#if defined(JS_CODEGEN_MIPS64)
+                    const MixedJumpData& mixedJumps,
+#endif
                     const Metadata& metadata,
                     HandleWasmMemoryObject memory)
 {
@@ -253,6 +273,9 @@ CodeSegment::create(JSContext* cx,
 
         memcpy(codeBase, bytecode.begin(), bytecode.length());
         StaticallyLink(*cs, linkData, cx);
+#if defined(JS_CODEGEN_MIPS64)
+        StaticallyMixedJump(*cs, mixedJumps);
+#endif
         if (memory)
             SpecializeToMemory(nullptr, *cs, metadata, memory->buffer());
     }

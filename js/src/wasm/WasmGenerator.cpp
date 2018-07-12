@@ -621,6 +621,25 @@ ModuleGenerator::finishLinkData(Bytes& code)
     return true;
 }
 
+#if defined(JS_CODEGEN_MIPS64)
+bool
+ModuleGenerator::finishMixedJumpData(Bytes& code)
+{
+    // already patch mixed jump by function  masm_.executableCopy
+    // here just save mixed jump from ion masm to Module, so we can use late, for
+    // example in CodeSegment::create.
+    for (size_t i = 0; i < masm_.numMixedJumps(); i++) {
+        uint32_t src = masm_.mixedJump(i).src.getOffset();
+        uint32_t mid = masm_.mixedJump(i).mid.getOffset();
+        MixedJumpData::MixedJump mixjump(src, mid, masm_.mixedJump(i).target);
+        if (!mixedJumpData_.mixedJumps.append(mixjump))
+            return false;
+    }
+    return true;
+}
+#endif
+
+
 bool
 ModuleGenerator::addFuncImport(const Sig& sig, uint32_t globalDataOffset)
 {
@@ -1162,9 +1181,17 @@ ModuleGenerator::finish(const ShareableBytes& bytecode)
     if (!finishLinkData(code))
         return nullptr;
 
+#if defined(JS_CODEGEN_MIPS64)
+    if (!finishMixedJumpData(code))
+        return nullptr;
+#endif
+
     return SharedModule(js_new<Module>(Move(assumptions_),
                                        Move(code),
                                        Move(linkData_),
+#if defined(JS_CODEGEN_MIPS64)
+                                       Move(mixedJumpData_),
+#endif
                                        Move(imports_),
                                        Move(exports_),
                                        Move(dataSegments_),
