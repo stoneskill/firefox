@@ -725,8 +725,8 @@ js::GenerateRandomSeed()
     // Try the relatively new getrandom syscall first. It's the preferred way
     // on Linux as /dev/urandom may not work inside chroots and is harder to
     // sandbox (see bug 995069).
-    int ret = syscall(SYS_getrandom, &seed, sizeof(seed), GRND_NONBLOCK);
-    done = (ret == sizeof(seed));
+    //int ret = syscall(SYS_getrandom, &seed, sizeof(seed), GRND_NONBLOCK);
+    //done = (ret == sizeof(seed));
 # endif
     if (!done) {
         int fd = open("/dev/urandom", O_RDONLY);
